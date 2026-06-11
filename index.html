@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gauntrix — The AI Market Distillery</title><link rel="canonical" href="https://h2652908721-collab.github.io/gauntrix/"><meta name="description" content="The AI Market Distillery"><meta property="og:type" content="website"><meta property="og:title" content="Gauntrix — The AI Market Distillery"><meta property="og:description" content="The AI Market Distillery"><meta property="og:url" content="https://h2652908721-collab.github.io/gauntrix/">
+  <title>Gauntrix — The AI Market Distillery</title>
   <script>/* must run before the browser restores scroll, or the intro + bead choreography gets skipped on reload */
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';</script>
   <meta name="description" content="200+ ideas pour in every week. ~4% come out distilled — narrow, buildable, monetizable niches for AI builders. Weekly drops.">
@@ -97,6 +97,7 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 1.6rem;
       transition: opacity 0.9s var(--ease), visibility 0.9s;
+      touch-action: none; overscroll-behavior: contain;   /* swipes on the veil never become page scrolls */
     }
     #veil.off { opacity: 0; visibility: hidden; }
     .veil-word {
@@ -1160,25 +1161,34 @@ if (!location.hash) window.scrollTo(0, 0);
 
 /* ─── VEIL ─── */
 var veilDone = false;
+function blockTouch(e){ e.preventDefault(); }   // veil-time gestures must never become scrolls
 function endVeil(){
   if(veilDone) return;
   veilDone = true;
   window.__gxVeilDone = true;
   document.documentElement.style.overflow = '';   // unlock scrolling
   document.body.style.overflow = '';
+  document.body.style.position = '';              // release the iOS-proof body lock
+  document.body.style.width = '';
+  window.removeEventListener('touchmove', blockTouch);
   if (!location.hash) window.scrollTo(0, 0);      // the story starts at the top
   document.getElementById('veil').classList.add('off');
   window.dispatchEvent(new CustomEvent('gx-veil-done'));
 }
 if(prefersReduced){ endVeil(); }
 else {
-  // scroll is LOCKED while the veil plays — and any scroll attempt skips it,
-  // so the page can never sneak past the intro underneath the overlay
+  // scroll is HARD-LOCKED while the veil plays. overflow:hidden alone doesn't
+  // stop iOS touch scrolling, so the body is also position:fixed (physically
+  // unscrollable) and veil-time touchmoves are preventDefault'ed — the gesture
+  // that skips the veil can't fling the page past the top with its momentum.
   document.documentElement.style.overflow = 'hidden';
   document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  window.addEventListener('touchmove', blockTouch, { passive: false });
   document.getElementById('veil').addEventListener('click', endVeil);
   window.addEventListener('wheel', endVeil, { passive: true });
-  window.addEventListener('touchmove', endVeil, { passive: true });
+  window.addEventListener('touchend', endVeil, { passive: true });  // swipe skips, AFTER the gesture ends
   window.addEventListener('keydown', endVeil);
   setTimeout(endVeil, 2900);
   setTimeout(endVeil, 6000); // hard failsafe
